@@ -5,6 +5,7 @@ import com.flatmate.resolver.dto.VoteRequest;
 import com.flatmate.resolver.model.Complaint;
 import com.flatmate.resolver.service.ComplaintService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,12 +29,18 @@ public class ComplaintController {
     }
 
     @PostMapping("/{id}/vote")
-    public Complaint voteComplaint(@RequestBody VoteRequest request) {
-       return complaintService.voteComplaint(request);
-    }
+    public ResponseEntity<String> voteComplaint(@RequestBody VoteRequest request) {
+        complaintService.voteComplaint(request);
+        return ResponseEntity.ok("Vote registered successfully!");    }
 
     @PutMapping("/{id}/resolve")
-    public void resolveComplaint(@PathVariable Long id, Authentication authentication) {
-        complaintService.resolveComplaint(id, authentication.getName());
+    public ResponseEntity<String> resolveComplaint(@PathVariable Long id, Authentication authentication) {
+        String message = complaintService.resolveComplaint(id, authentication.getName());
+        return ResponseEntity.ok(message);
+    }
+
+    @GetMapping("/trending")
+    public ResponseEntity<List<Complaint>> getTrendingComplaints() {
+        return ResponseEntity.ok(complaintService.getTrendingComplaints());
     }
 }

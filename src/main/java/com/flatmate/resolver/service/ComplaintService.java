@@ -11,9 +11,14 @@ import com.flatmate.resolver.repository.FlatRepository;
 import com.flatmate.resolver.repository.KarmaRepository;
 import com.flatmate.resolver.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -51,7 +56,7 @@ public class ComplaintService {
         return complaintRepository.save(complaint);
     }
 
-    public Complaint voteComplaint(VoteRequest request) {
+    public String voteComplaint(VoteRequest request) {
         Complaint complaint = complaintRepository.findById(request.getComplaintId())
                 .orElseThrow(() -> new RuntimeException("Complaint not found"));
 
@@ -61,10 +66,11 @@ public class ComplaintService {
             complaint.setDownvotes(complaint.getDownvotes() + 1);
         }
 
-       return complaintRepository.save(complaint);
+        complaintRepository.save(complaint);
+        return ("Vote registered successfully!");
     }
 
-    public void resolveComplaint(Long complaintId, String userEmail) {
+    public String resolveComplaint(Long complaintId, String userEmail) {
         Complaint complaint = complaintRepository.findById(complaintId)
                 .orElseThrow(() -> new RuntimeException("Complaint not found"));
 
@@ -81,9 +87,28 @@ public class ComplaintService {
         }
         karma.setKarmaPoints(karma.getKarmaPoints() + 10);
         karmaRepository.save(karma);
+        return "Complaint marked as resolved!";
     }
 
     public List<Complaint> getAllActiveComplaints() {
         return complaintRepository.findByResolvedFalse();
+    }
+
+    public List<Complaint> getTrendingComplaints() {
+        Pageable topComplaints = PageRequest.of(0, 5, Sort.by("upvotes").descending());
+        return complaintRepository.findByOrderByUpvotesDesc(topComplaints);
+    }
+
+    public List<Karma> getLeaderboard() {
+        return karmaRepository.findTop10ByOrderByKarmaPointsDesc();
+    }
+
+    public Map<String, Long> getFlatComplaintStats(String flatCode) {
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("totalComplaints", complaintRepository.countByFlat_FlatCode(flatCode));
+        stats.put("resolvedComplaints", complaintRepository.countByFlat_FlatCodeAndResolvedTrue(flatCode));
+        stats.put("pendingComplaints", complaintRepository.countByFlat_FlatCodeAndResolvedFalse(flatCode));
+
+        return stats;
     }
 }
